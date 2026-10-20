@@ -1,6 +1,7 @@
 
 from dataclasses import dataclass
 
+from app.agent.interpretation import interpret_question
 from app.llm.gateway import LLMGateway, get_llm_gateway
 
 
@@ -17,19 +18,27 @@ class AgentOrchestrator:
         self.llm = llm or get_llm_gateway()
 
     def ask(self, question: str) -> AskResult:
-        question = question.strip()
-        if not question:
+        interpreted = interpret_question(question)
+
+        if not interpreted.normalized_question:
             return AskResult(
                 answer="Пожалуйста, напишите вопрос.",
                 status="invalid_request",
             )
 
+        context_note = (
+            "Для ответа могут потребоваться актуальные новости."
+            if interpreted.needs_news
+            else "Ответь на вопрос пользователя, не выдумывая факты."
+        )
+
         answer = self.llm.generate(
             system_prompt=(
                 "Ты помощник по бизнес-новостям. "
-                "Не выдумывай факты и явно обозначай ограничения."
+                "Не выдумывай факты и явно обозначай ограничения. "
+                f"{context_note}"
             ),
-            user_prompt=question,
+            user_prompt=interpreted.normalized_question,
         )
 
         return AskResult(answer=answer)
