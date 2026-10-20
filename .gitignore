@@ -22,3 +22,5 @@ data/*
 .pytest_cache/
 .coverage
 htmlcov/
+# Локальные реальные новости — не публиковать
+/data/news_snapshot.json
