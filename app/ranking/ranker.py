@@ -1,25 +1,63 @@
+
 """Начальная детерминированная оценка релевантности новостей."""
 
 from app.contracts import (
     ClientProfile,
     MatchedFeature,
+    NewsItem,
     RankedNewsItem,
     RelevanceScore,
     SourceRef,
 )
-from app.contracts import NewsItem
+
+
+# Простые тематические подсказки для отраслевого ранжирования.
+# Это эвристика, а не экспертная оценка влияния новости.
+INDUSTRY_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "финансы": (
+        "финансов",
+        "денежно-кредит",
+        "ключев",
+        "процентн",
+        "ставк",
+        "инфляц",
+        "ликвидност",
+        "репо",
+        "валют",
+        "кредит",
+        "облигац",
+        "ценн бумаг",
+        "банковск",
+    ),
+}
+
+
+def _find_match(searchable_text: str, value: str) -> str | None:
+    """Ищет буквальное совпадение или тематический термин."""
+    normalized_value = value.strip().casefold()
+    if not normalized_value:
+        return None
+
+    if normalized_value in searchable_text:
+        return value.strip()
+
+    keywords = INDUSTRY_KEYWORDS.get(normalized_value, ())
+    for keyword in keywords:
+        if keyword in searchable_text:
+            return keyword
+
+    return None
 
 
 def rank_news(
     news_items: list[NewsItem],
     client: ClientProfile,
 ) -> list[RankedNewsItem]:
-    """Оценивает новости по совпадениям с доступными полями профиля.
+    """Оценивает новости по совпадениям с полями профиля клиента.
 
-    Это базовый алгоритм для прототипа, а не экспертная оценка влияния.
+    Это базовая эвристика, а не прогноз финансового эффекта.
     """
     ranked: list[RankedNewsItem] = []
-
     profile_features: list[tuple[str, str, str]] = []
 
     if client.industry_name:
@@ -35,21 +73,29 @@ def rank_news(
 
     for product in client.products:
         if product.strip():
-            profile_features.append(("products", "банковский продукт", product))
+            profile_features.append(
+                ("products", "банковский продукт", product)
+            )
 
     for news in news_items:
-        searchable_text = f"{news.title} {news.text} {news.topic or ''}".casefold()
+        searchable_text = (
+            f"{news.title} {news.text} {news.topic or ''}"
+        ).casefold()
         matched_features: list[MatchedFeature] = []
 
         for profile_field, feature, value in profile_features:
-            normalized_value = value.strip().casefold()
-            if normalized_value and normalized_value in searchable_text:
+            matched_term = _find_match(searchable_text, value)
+
+            if matched_term:
                 matched_features.append(
                     MatchedFeature(
                         feature=feature,
                         profile_field=profile_field,
                         matched=True,
-                        reason=f"В тексте новости найдено совпадение: «{value}».",
+                        reason=(
+                            "Найдено совпадение с профилем клиента: "
+                            f"«{matched_term}»."
+                        ),
                     )
                 )
 
@@ -73,7 +119,8 @@ def rank_news(
                     matched_features=matched_features,
                     rationale=(
                         "Начальная эвристическая оценка: "
-                        f"найдено совпадений с профилем — {len(matched_features)}. "
+                        f"найдено совпадений с профилем — "
+                        f"{len(matched_features)}. "
                         "Это не прогноз финансового эффекта."
                     ),
                     source_refs=[source_ref],
