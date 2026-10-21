@@ -53,3 +53,6 @@ tzdata==2026.2
 urllib3==2.6.3
 uvicorn==0.54.0
 xlsxwriter==3.2.9
+SQLAlchemy>=2.0,<3.0
+psycopg[binary]>=3.2,<4.0
+alembic>=1.14,<2.0
