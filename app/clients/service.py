@@ -18,9 +18,9 @@ def get_client_profile(
     if profile is None:
         return None
 
-    counterparties = [
+    top_counterparties = [
         Counterparty(
-            counterparty_client_id=item.counterparty_client_id,
+            client_id=item.counterparty_client_id,
             industry_code=item.industry_code,
             industry_name=item.industry_name,
             region=item.region,
@@ -39,5 +39,5 @@ def get_client_profile(
         revenue_rub=profile.revenue_rub,
         products=profile.products or [],
         group_ids=[profile.group_id] if profile.group_id else [],
-        counterparties=counterparties,
+        top_counterparties=top_counterparties,
     )
