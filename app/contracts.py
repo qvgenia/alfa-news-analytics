@@ -1,5 +1,5 @@
 # app/contracts.py
-# иточник правды по моделям данных проекта.
+# Единственный источник правды по моделям данных проекта.
 # Менять только через Pull Request с согласия A, B и C.
 
 from datetime import datetime
@@ -13,19 +13,40 @@ class ContractModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-#Профиль клиента (владелец: роль A)
+# ---------- Профиль клиента (владелец: A) ----------
 
-class ClientProfile(ContractModel):
-    client_id: str
+class Counterparty(ContractModel):
+    client_id: str                                # обезличенный ID компании-контрагента
+    # incoming: контрагент платит клиенту; outgoing: клиент платит контрагенту
+    direction: Literal["incoming", "outgoing"]
+    pay_amt: Decimal | None = Field(default=None, ge=0)
+    pay_cnt: int | None = Field(default=None, ge=0)
+    # Необязательно: признаки самого контрагента, если он есть в df_Uid_data_hack.csv.
+    # Нужны, чтобы сопоставлять новости с отраслью контрагентов, а не с названием.
     industry_code: str | None = None
     industry_name: str | None = None
     region: str | None = None
+
+
+class ClientProfile(ContractModel):
+    client_id: str
+    industry_code: str | None = None    # MAINOKVED_CODE
+    industry_name: str | None = None    # MAINOKVED_NAME
+    region: str | None = None
+    city: str | None = None
     revenue_rub: Decimal | None = Field(default=None, ge=0)
+    # Коды продуктов банка: RKO, GAR, LOA, LEA, DEP, ZPP, FACTORING
     products: list[str] = Field(default_factory=list)
-    group_ids: list[str] = Field(default_factory=list)
+    group_id: str | None = None
+    fts_countries: list[str] = Field(default_factory=list)
+    top_counterparties: list[Counterparty] = Field(default_factory=list)
+    related_entities: list[str] = Field(default_factory=list)  # связи через физлиц
 
 
-#Источники и новости (владелец: роль B) -
+# ---------- Источники и новости (владелец: B) ----------
+# source_id для новости:  news:<news_id>
+# source_id для банка:    bank:<id_документа>:p<страница>:c<номер_чанка>
+
 class SourceRef(ContractModel):
     source_id: str
     source_type: Literal["news", "bank_analytics", "other"]
@@ -55,6 +76,8 @@ class NewsItem(ContractModel):
 
 
 class MatchedFeature(ContractModel):
+    # Стабильные коды: industry, region, credit_exposure, fts_country,
+    # counterparty, group, revenue_scale. Понятное объяснение пишем в reason.
     feature: str
     profile_field: str | None = None
     matched: bool
@@ -75,7 +98,7 @@ class RankedNewsItem(ContractModel):
     relevance: RelevanceScore
 
 
-# Интерпретация (владелец:роль C) 
+# ---------- Интерпретация (владелец: C) ----------
 
 class Insight(ContractModel):
     insight_id: str | None = None
@@ -86,10 +109,10 @@ class Insight(ContractModel):
     what_happened: str
     facts: list[str] = Field(default_factory=list)
 
-    # 2.Важно для этой компании
+    # 2. Почему важно для этой компании
     why_it_matters: str
 
-    # 3.(риски и возможности)
+    # 3. Возможные последствия (риски и возможности)
     potential_consequences: list[str] = Field(default_factory=list)
 
     # 4. Какие действия могут быть релевантны
@@ -111,3 +134,14 @@ class AskRequest(ContractModel):
     client_id: str
     question: str = Field(min_length=1, max_length=2000)
     news_id: str | None = None
+
+
+class AskResponse(ContractModel):
+    client_id: str
+    news_id: str | None = None
+    answer: str
+    # Если вопрос требует нового инсайта по новости, он приходит здесь
+    insight: Insight | None = None
+    source_refs: list[SourceRef] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    trace_id: str | None = None
