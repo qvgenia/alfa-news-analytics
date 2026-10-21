@@ -53,9 +53,14 @@ def test_get_client_profile_returns_counterparties():
         assert result is not None
         assert result.client_id == "TEST_CLIENT"
         assert result.group_ids == ["GROUP_1"]
-        assert len(result.counterparties) == 1
-        assert result.counterparties[0].counterparty_client_id == "TEST_CP"
-        assert result.counterparties[0].direction == "outgoing"
+        assert len(result.top_counterparties) == 1
+
+        counterparty = result.top_counterparties[0]
+        assert counterparty.client_id == "TEST_CP"
+        assert counterparty.industry_code == "46.90"
+        assert counterparty.industry_name == "Оптовая торговля"
+        assert counterparty.region == "Москва"
+        assert counterparty.direction == "outgoing"
     finally:
         db.close()
 
