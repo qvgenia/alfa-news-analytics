@@ -78,6 +78,9 @@ class CounterpartyModel(Base):
     counterparty_client_id: Mapped[str] = mapped_column(
         String(100), nullable=False
     )
+    industry_code: Mapped[str | None] = mapped_column(String(50))
+    industry_name: Mapped[str | None] = mapped_column(String(255))
+    region: Mapped[str | None] = mapped_column(String(255))
 
     direction: Mapped[str] = mapped_column(String(20), nullable=False)
     pay_amt: Mapped[Decimal | None] = mapped_column(Numeric(20, 2))
