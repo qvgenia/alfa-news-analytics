@@ -36,8 +36,11 @@ def get_client_profile(
         industry_code=profile.industry_code,
         industry_name=profile.industry_name,
         region=profile.region,
+        city=profile.city,
         revenue_rub=profile.revenue_rub,
         products=profile.products or [],
         group_ids=[profile.group_id] if profile.group_id else [],
+        fts_countries=profile.fts_countries or [],
+        related_entities=profile.related_entities or [],
         top_counterparties=top_counterparties,
     )

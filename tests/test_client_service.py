@@ -28,12 +28,14 @@ def test_get_client_profile_returns_counterparties():
             industry_code="62.01",
             industry_name="Разработка ПО",
             region="Москва",
+            city="Москва",
             revenue_rub=Decimal("18000000000"),
             products=["RKO", "LOA"],
-            fts_countries=[],
-            related_entities=[],
+            fts_countries=["Китай", "Казахстан"],
+            related_entities=["TEST_ENTITY_1"],
             group_id="GROUP_1",
         )
+
         profile.counterparties.append(
             CounterpartyModel(
                 counterparty_client_id="TEST_CP",
@@ -45,6 +47,7 @@ def test_get_client_profile_returns_counterparties():
                 pay_cnt=2,
             )
         )
+
         db.add(profile)
         db.commit()
 
@@ -52,7 +55,16 @@ def test_get_client_profile_returns_counterparties():
 
         assert result is not None
         assert result.client_id == "TEST_CLIENT"
+        assert result.industry_code == "62.01"
+        assert result.industry_name == "Разработка ПО"
+        assert result.region == "Москва"
+        assert result.city == "Москва"
+        assert result.revenue_rub == Decimal("18000000000")
+        assert result.products == ["RKO", "LOA"]
         assert result.group_ids == ["GROUP_1"]
+        assert result.fts_countries == ["Китай", "Казахстан"]
+        assert result.related_entities == ["TEST_ENTITY_1"]
+
         assert len(result.top_counterparties) == 1
 
         counterparty = result.top_counterparties[0]
@@ -61,6 +73,9 @@ def test_get_client_profile_returns_counterparties():
         assert counterparty.industry_name == "Оптовая торговля"
         assert counterparty.region == "Москва"
         assert counterparty.direction == "outgoing"
+        assert counterparty.pay_amt == Decimal("1000")
+        assert counterparty.pay_cnt == 2
+
     finally:
         db.close()
 
@@ -68,6 +83,7 @@ def test_get_client_profile_returns_counterparties():
 def test_get_client_profile_returns_none_for_unknown_client():
     db = make_session()
     try:
-        assert get_client_profile("UNKNOWN", db) is None
+        result = get_client_profile("UNKNOWN", db)
+        assert result is None
     finally:
         db.close()
