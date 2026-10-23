@@ -345,3 +345,56 @@ def test_counterparty_score_respects_maximum_100():
     ranked = rank_news([news], client)[0]
 
     assert ranked.relevance.score == 100.0
+
+def test_it_news_matches_software_industry_with_industry_code():
+    client = ClientProfile(
+        client_id="tech-client",
+        industry_code="62.01",
+        industry_name="Разработка компьютерного программного обеспечения",
+    )
+    news = make_news(
+        "tech-001",
+        "Новая платформа для разработки программного обеспечения",
+    )
+
+    ranked = rank_news([news], client)
+
+    assert ranked[0].relevance.score == 25.0
+    assert len(ranked[0].relevance.matched_features) == 1
+    assert ranked[0].relevance.matched_features[0].profile_field == "industry_name"
+
+
+def test_wholesale_news_matches_trade_industry():
+    client = ClientProfile(
+        client_id="trade-client",
+        industry_code="46.90",
+        industry_name="Оптовая торговля",
+    )
+    news = make_news(
+        "trade-001",
+        "Оптовая торговля товарами показала рост",
+    )
+
+    ranked = rank_news([news], client)
+
+    assert ranked[0].relevance.score == 25.0
+    assert len(ranked[0].relevance.matched_features) == 1
+    assert ranked[0].relevance.matched_features[0].profile_field == "industry_name"
+
+
+def test_same_industry_is_not_counted_twice_for_code_and_name():
+    client = ClientProfile(
+        client_id="tech-client",
+        industry_code="62.01",
+        industry_name="Разработка компьютерного программного обеспечения",
+    )
+    news = make_news(
+        "tech-002",
+        "Разработка компьютерного программного обеспечения",
+        text="Код отрасли 62.01",
+    )
+
+    ranked = rank_news([news], client)
+
+    assert ranked[0].relevance.score == 25.0
+    assert len(ranked[0].relevance.matched_features) == 1

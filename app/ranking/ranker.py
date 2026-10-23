@@ -1,3 +1,4 @@
+
 """Детерминированная оценка релевантности новостей."""
 
 from app.contracts import (
@@ -23,6 +24,37 @@ INDUSTRY_KEYWORDS: dict[str, tuple[str, ...]] = {
         "облигац",
         "ценн бумаг",
         "банковск",
+    ),
+    "разработка компьютерного программного обеспечения": (
+        "программного обеспеч",
+        "разработк программ",
+        "разработк по",
+        "информационн технолог",
+        "ит-компан",
+        "айти-компан",
+        "разработчик программ",
+        "программный продукт",
+        "программная платформа",
+        "кибербезопасност",
+    ),
+    "разработка программного обеспечения": (
+        "программного обеспеч",
+        "разработк программ",
+        "разработк по",
+        "информационн технолог",
+        "ит-компан",
+        "айти-компан",
+        "разработчик программ",
+        "программный продукт",
+        "программная платформа",
+        "кибербезопасност",
+    ),
+    "оптовая торговля": (
+        "оптов торговл",
+        "оптов постав",
+        "оптов закуп",
+        "оптов продав",
+        "оптовик",
     ),
 }
 
@@ -50,8 +82,9 @@ def _find_match(searchable_text: str, value: str) -> str | None:
         return value.strip()
 
     if normalized_value == "москва":
-        if "москве" in searchable_text or "москвой" in searchable_text:
-            return "Москва"
+        for form in ("москве", "москвой", "москвы"):
+            if form in searchable_text:
+                return "Москва"
 
     for keyword in INDUSTRY_KEYWORDS.get(normalized_value, ()):
         if keyword in searchable_text:
@@ -82,7 +115,6 @@ def _counterparty_matches(
     score = 0.0
 
     for counterparty in client.top_counterparties:
-        # Если есть код отрасли, название не используем как запасной вариант.
         industry_value = (
             counterparty.industry_code
             if counterparty.industry_code
@@ -115,8 +147,6 @@ def _counterparty_matches(
                 )
             )
 
-        # Регион — самостоятельный сигнал: он может дать +10
-        # даже при отсутствии совпадения отрасли.
         if counterparty.region:
             region_match = _find_match(
                 searchable_text,
@@ -148,19 +178,19 @@ def rank_news(
 ) -> list[RankedNewsItem]:
     """Ранжирует новости по совпадениям с профилем клиента.
 
-    Совпадение признака профиля даёт 25 баллов.
-    Отрасль контрагента даёт ещё 25 только при отсутствии
-    уже учтённого сигнала той же отрасли.
-    Регион контрагента даёт 10 баллов независимо от отрасли.
-    Максимум — 100. Это эвристика, не прогноз финансового эффекта.
+    Каждый совпавший признак профиля даёт 25 баллов.
+    Отрасль контрагента даёт ещё 25 баллов, если её сигнал
+    ещё не был учтён. Регион контрагента даёт 10 баллов.
+    Максимум — 100. Это эвристика, а не прогноз финансового эффекта.
     """
     ranked: list[RankedNewsItem] = []
     profile_features: list[tuple[str, str]] = []
 
-    # Для отрасли используем код, если он задан, иначе — название.
+    # Проверяем код и название отрасли отдельно.
     if client.industry_code and client.industry_code.strip():
         profile_features.append(("industry_code", client.industry_code))
-    elif client.industry_name and client.industry_name.strip():
+
+    if client.industry_name and client.industry_name.strip():
         profile_features.append(("industry_name", client.industry_name))
 
     if client.region and client.region.strip():
@@ -184,26 +214,30 @@ def rank_news(
             if not matched_term:
                 continue
 
+            # Не начисляем дважды за одну и ту же отрасль,
+            # если совпали и код, и название профиля.
+            if profile_field in ("industry_code", "industry_name"):
+                industry_key = _industry_key(
+                    client.industry_code,
+                    client.industry_name,
+                )
+                if industry_key and industry_key in matched_industries:
+                    continue
+                if industry_key:
+                    matched_industries.add(industry_key)
+
             matched_features.append(
                 MatchedFeature(
                     feature=profile_field,
                     profile_field=profile_field,
                     matched=True,
                     reason=(
-                        f"Найдено совпадение по признаку "
+                        "Найдено совпадение по признаку "
                         f"«{FEATURE_LABELS[profile_field]}»: "
                         f"«{matched_term}»."
                     ),
                 )
             )
-
-            if profile_field in ("industry_code", "industry_name"):
-                matched_industries.add(
-                    _industry_key(
-                        client.industry_code,
-                        client.industry_name,
-                    )
-                )
 
         counterparty_features, counterparty_score = _counterparty_matches(
             searchable_text,
@@ -212,13 +246,11 @@ def rank_news(
         )
         matched_features.extend(counterparty_features)
 
-        profile_score = POINTS_PER_FEATURE * (
+        profile_feature_count = (
             len(matched_features) - len(counterparty_features)
         )
-        score = min(
-            MAX_SCORE,
-            profile_score + counterparty_score,
-        )
+        profile_score = POINTS_PER_FEATURE * profile_feature_count
+        score = min(MAX_SCORE, profile_score + counterparty_score)
 
         source_ref = SourceRef(
             source_id=f"news:{news.news_id}",
