@@ -5,12 +5,14 @@ from app.clients.service import get_client_profile
 from app.contracts import RankedNewsItem
 from app.db.session import get_db
 from app.news.news_feed import get_ranked_news_feed
+from app.clients.router import router as clients_router
 
 app = FastAPI(
     title="Alfa News Analytics",
     description="Персонализированная новостная аналитика для бизнеса",
     version="0.1.0",
 )
+app.include_router(clients_router)
 
 
 @app.get("/health")
