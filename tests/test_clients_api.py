@@ -142,3 +142,45 @@ def test_update_client_id_mismatch_returns_422():
     )
 
     assert response.status_code == 422
+
+def test_update_client_profile_replaces_counterparties():
+    client.post("/clients", json=profile_payload())
+
+    updated = profile_payload()
+    updated["top_counterparties"] = [
+        {
+            "client_id": "COUNTERPARTY_002",
+            "direction": "incoming",
+            "pay_amt": "500000",
+            "pay_cnt": 3,
+            "industry_code": "46.90",
+            "industry_name": "Торговля",
+            "region": "Санкт-Петербург",
+        }
+    ]
+
+    response = client.put("/clients/TEST_API_CLIENT", json=updated)
+
+    assert response.status_code == 200
+    counterparties = response.json()["top_counterparties"]
+    assert len(counterparties) == 1
+    assert counterparties[0]["client_id"] == "COUNTERPARTY_002"
+
+
+def test_update_client_profile_clears_optional_lists():
+    client.post("/clients", json=profile_payload())
+
+    updated = profile_payload()
+    updated["products"] = []
+    updated["fts_countries"] = []
+    updated["related_entities"] = []
+    updated["top_counterparties"] = []
+
+    response = client.put("/clients/TEST_API_CLIENT", json=updated)
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["products"] == []
+    assert result["fts_countries"] == []
+    assert result["related_entities"] == []
+    assert result["top_counterparties"] == []
