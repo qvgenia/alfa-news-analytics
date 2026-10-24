@@ -8,6 +8,7 @@ from sqlalchemy import (
     Index,
     Numeric,
     String,
+    Text,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -24,7 +25,7 @@ class ClientProfileModel(Base):
     client_id: Mapped[str] = mapped_column(String(100), primary_key=True)
 
     industry_code: Mapped[str | None] = mapped_column(String(50))
-    industry_name: Mapped[str | None] = mapped_column(String(255))
+    industry_name: Mapped[str | None] = mapped_column(Text)
     region: Mapped[str | None] = mapped_column(String(255))
     city: Mapped[str | None] = mapped_column(String(255))
 
@@ -78,8 +79,16 @@ class CounterpartyModel(Base):
     counterparty_client_id: Mapped[str] = mapped_column(
         String(100), nullable=False
     )
+    source: Mapped[str] = mapped_column(
+    String(50),
+    nullable=False,
+    default="manual",
+    server_default="manual",
+    )
+
+
     industry_code: Mapped[str | None] = mapped_column(String(50))
-    industry_name: Mapped[str | None] = mapped_column(String(255))
+    industry_name: Mapped[str | None] = mapped_column(Text)
     region: Mapped[str | None] = mapped_column(String(255))
 
     direction: Mapped[str] = mapped_column(String(20), nullable=False)
