@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
+from app.agent.routes import router as assistant_router
 from app.clients.router import router as clients_router
 from app.clients.service import get_client_profile
 from app.contracts import RankedNewsItem
@@ -35,6 +36,7 @@ app = FastAPI(
 
 app.include_router(clients_router)
 app.include_router(reports_router)
+app.include_router(assistant_router)
 
 
 @app.get("/health")
