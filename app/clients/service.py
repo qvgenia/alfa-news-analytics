@@ -29,7 +29,11 @@ def get_client_profile(
             pay_amt=item.pay_amt,
             pay_cnt=item.pay_cnt,
         )
-        for item in profile.counterparties
+        for item in sorted(
+            profile.counterparties,
+            key=lambda item: item.pay_amt or 0,
+            reverse=True,
+        )[:10]
     ]
 
     return ClientProfile(
