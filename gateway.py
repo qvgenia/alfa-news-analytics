@@ -1,14 +1,10 @@
 
-"""LLM Gateway: единая точка обращения к языковой модели."""
-
-from __future__ import annotations
-
 import asyncio
 import json
 import os
+import urllib.error
+import urllib.request
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 
 class GatewayError(Exception):
@@ -32,18 +28,11 @@ class GatewayInvalidResponseError(GatewayError):
 
 
 class LLMGateway:
-    """Клиент LLM с явными режимами production и mock.
-
-    Переменная LLM_MODE принимает значения:
-    - production — реальный HTTP-запрос;
-    - mock — локальный ответ для разработки и тестов.
-
-    Автоматического перехода в mock при ошибке конфигурации нет.
-    """
+    """Клиент LLM с явными режимами production и mock."""
 
     def __init__(self) -> None:
         self.mode = os.getenv("LLM_MODE", "production").strip().lower()
-        self.base_url = os.getenv("LLM_BASE_URL", "").strip()
+        self.base_url = os.getenv("LLM_BASE_URL", "").strip().rstrip("/")
         self.api_key = os.getenv("LLM_API_KEY", "").strip()
         self.model = os.getenv("LLM_MODEL", "").strip()
 
@@ -68,7 +57,11 @@ class LLMGateway:
             if not self.model:
                 raise ValueError("В production необходимо задать LLM_MODEL.")
             if not self.base_url.startswith(("http://", "https://")):
-                raise ValueError("LLM_BASE_URL должен начинаться с http:// или https://.")
+                raise ValueError(
+                    "LLM_BASE_URL должен начинаться с http:// или https://."
+                )
+            if not self.api_key:
+                raise ValueError("В production необходимо задать LLM_API_KEY.")
 
     async def generate_json(
         self,
@@ -77,6 +70,8 @@ class LLMGateway:
         response_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Генерирует JSON-объект и проверяет его формат."""
+        if not system_prompt.strip() or not user_prompt.strip():
+            raise ValueError("System prompt и user prompt не должны быть пустыми.")
 
         if self.mode == "mock":
             result: dict[str, Any] = {
@@ -85,146 +80,149 @@ class LLMGateway:
             }
             return self._validate_result(result, response_schema)
 
-        if not system_prompt.strip() or not user_prompt.strip():
-            raise ValueError("system_prompt и user_prompt не должны быть пустыми.")
-
-        raw_response = await asyncio.to_thread(
-            self._request,
+        return await asyncio.to_thread(
+            self._generate_json_sync,
             system_prompt,
             user_prompt,
+            response_schema,
         )
 
-        if not raw_response or not raw_response.strip():
-            raise GatewayInvalidResponseError("Провайдер вернул пустой ответ.")
-
-        try:
-            result = json.loads(raw_response)
-        except json.JSONDecodeError as exc:
-            raise GatewayInvalidResponseError(
-                "Ответ провайдера не является корректным JSON."
-            ) from exc
-
-        if not isinstance(result, dict):
-            raise GatewayInvalidResponseError(
-                "Ожидался JSON-объект верхнего уровня."
-            )
-
-        return self._validate_result(result, response_schema)
-
-    def _request(self, system_prompt: str, user_prompt: str) -> str:
-        """Выполняет HTTP-запрос. Формат совместим с Chat Completions API."""
-
-        if not self.base_url or not self.model:
-            raise GatewayResponseError(
-                "Не заданы LLM_BASE_URL или LLM_MODEL."
-            )
-
-        endpoint = self.base_url.rstrip("/")
-        if not endpoint.endswith("/chat/completions"):
-            endpoint += "/chat/completions"
+    def _generate_json_sync(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        response_schema: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Выполняет синхронный HTTP-запрос внутри рабочего потока."""
+        url = (
+            self.base_url
+            if self.base_url.endswith("/chat/completions")
+            else f"{self.base_url}/chat/completions"
+        )
 
         payload = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {
+                    "role": "user",
+                    "content": (
+                        user_prompt
+                        + "\n\nВерни только один корректный JSON-объект без "
+                        "Markdown и дополнительного текста."
+                    ),
+                },
             ],
             "max_tokens": self.max_tokens,
             "response_format": {"type": "json_object"},
         }
 
-        headers = {"Content-Type": "application/json"}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-
-        request = Request(
-            endpoint,
+        request = urllib.request.Request(
+            url,
             data=json.dumps(payload).encode("utf-8"),
-            headers=headers,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}",
+            },
             method="POST",
         )
 
         try:
-            with urlopen(request, timeout=self.timeout) as response:
-                body = response.read().decode("utf-8")
+            with urllib.request.urlopen(
+                request, timeout=self.timeout
+            ) as response:
+                raw_response = response.read().decode("utf-8")
+
         except TimeoutError as exc:
             raise GatewayTimeoutError("Истекло время ожидания ответа LLM.") from exc
-        except HTTPError as exc:
+        except urllib.error.HTTPError as exc:
             if exc.code in {408, 504}:
                 raise GatewayTimeoutError(
-                    f"Провайдер вернул HTTP {exc.code}."
+                    f"LLM вернула HTTP {exc.code}."
                 ) from exc
             raise GatewayResponseError(
-                f"Провайдер вернул HTTP {exc.code}."
+                f"LLM вернула HTTP {exc.code}."
             ) from exc
-        except (URLError, OSError) as exc:
-            if isinstance(exc, URLError) and isinstance(exc.reason, TimeoutError):
+        except (urllib.error.URLError, OSError) as exc:
+            if isinstance(getattr(exc, "reason", None), TimeoutError):
                 raise GatewayTimeoutError(
                     "Истекло время ожидания ответа LLM."
                 ) from exc
             raise GatewayConnectionError(
-                "Не удалось подключиться к провайдеру LLM."
+                "Не удалось подключиться к LLM."
             ) from exc
 
         try:
-            envelope = json.loads(body)
-            content = envelope["choices"][0]["message"]["content"]
-        except (json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
+            provider_data = json.loads(raw_response)
+            content = provider_data["choices"][0]["message"]["content"]
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError("Пустой content.")
+            result = json.loads(content)
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError) as exc:
             raise GatewayInvalidResponseError(
-                "Ответ API не соответствует формату Chat Completions."
+                "LLM вернула пустой или некорректный JSON."
             ) from exc
 
-        if not isinstance(content, str) or not content.strip():
+        if not isinstance(result, dict):
             raise GatewayInvalidResponseError(
-                "Провайдер вернул пустое содержимое."
+                "Ответ LLM должен быть JSON-объектом."
             )
 
-        return content
+        return self._validate_result(result, response_schema)
 
     @staticmethod
     def _validate_result(
         result: dict[str, Any],
         response_schema: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        """Проверяет JSON Schema, если она передана вызывающим кодом."""
+        """Проверяет тип результата и основные ограничения схемы."""
+        if not isinstance(result, dict):
+            raise GatewayInvalidResponseError(
+                "Ответ должен быть JSON-объектом."
+            )
 
         if response_schema is None:
             return result
 
-        try:
-            from jsonschema import validate
-            from jsonschema.exceptions import ValidationError, SchemaError
+        required = response_schema.get("required", [])
+        properties = response_schema.get("properties", {})
 
-            validate(instance=result, schema=response_schema)
-        except ImportError as exc:
-            raise GatewayInvalidResponseError(
-                "Для проверки response_schema установи пакет jsonschema."
-            ) from exc
-        except (ValidationError, SchemaError) as exc:
-            raise GatewayInvalidResponseError(
-                "Ответ не соответствует response_schema."
-            ) from exc
+        for field in required:
+            if field not in result:
+                raise GatewayInvalidResponseError(
+                    f"В ответе отсутствует обязательное поле: {field}."
+                )
+
+        if response_schema.get("additionalProperties") is False:
+            extra_fields = set(result) - set(properties)
+            if extra_fields:
+                raise GatewayInvalidResponseError(
+                    f"Лишние поля в ответе: {', '.join(sorted(extra_fields))}."
+                )
+
+        for field, definition in properties.items():
+            if field not in result:
+                continue
+
+            expected_type = definition.get("type")
+            value = result[field]
+
+            type_checks = {
+                "object": lambda v: isinstance(v, dict),
+                "array": lambda v: isinstance(v, list),
+                "string": lambda v: isinstance(v, str),
+                "integer": lambda v: isinstance(v, int)
+                and not isinstance(v, bool),
+                "number": lambda v: isinstance(v, (int, float))
+                and not isinstance(v, bool),
+                "boolean": lambda v: isinstance(v, bool),
+                "null": lambda v: v is None,
+            }
+
+            check = type_checks.get(expected_type)
+            if check is not None and not check(value):
+                raise GatewayInvalidResponseError(
+                    f"Поле {field} должно иметь тип {expected_type}."
+                )
 
         return result
-
-
-# Удобный публичный интерфейс для кода агента.
-_default_gateway: LLMGateway | None = None
-
-
-async def generate_json(
-    system_prompt: str,
-    user_prompt: str,
-    response_schema: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Вызывает настроенный Gateway."""
-
-    global _default_gateway
-    if _default_gateway is None:
-        _default_gateway = LLMGateway()
-
-    return await _default_gateway.generate_json(
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        response_schema=response_schema,
-    )
