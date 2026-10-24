@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import model_validator
 
 
 class ContractModel(BaseModel):
@@ -57,6 +58,12 @@ class ClientProfile(ContractModel):
     top_counterparties: list[Counterparty] = Field(default_factory=list)
 
     related_entities: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_group_ids(self):
+        if len(self.group_ids) > 1:
+            raise ValueError("Допускается не более одной группы (group_ids)")
+        return self
 
 
 # ---------- Источники и новости (владелец: B) ----------

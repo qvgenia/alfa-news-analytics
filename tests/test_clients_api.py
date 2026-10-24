@@ -10,6 +10,10 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 
+from pydantic import ValidationError
+from app.contracts import ClientProfile
+import pytest
+
 
 engine = create_engine(
     "sqlite://",
@@ -184,3 +188,18 @@ def test_update_client_profile_clears_optional_lists():
     assert result["fts_countries"] == []
     assert result["related_entities"] == []
     assert result["top_counterparties"] == []
+
+def test_client_profile_allows_zero_or_one_group():
+    assert ClientProfile(client_id="client-1", group_ids=[]).group_ids == []
+    assert ClientProfile(
+        client_id="client-2",
+        group_ids=["GROUP_001"],
+    ).group_ids == ["GROUP_001"]
+
+
+def test_client_profile_rejects_multiple_groups():
+    with pytest.raises(ValidationError):
+        ClientProfile(
+            client_id="client-3",
+            group_ids=["GROUP_001", "GROUP_002"],
+        )
