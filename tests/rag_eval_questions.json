@@ -1,0 +1,61 @@
+[
+  {
+    "id": "Q1",
+    "query": "Какие условия необходимы для снижения ключевой ставки?",
+    "relevant_sources": [
+      {"document": "FI_Strategy_3Q26_22072026.pdf", "page": 9},
+      {"document": "FI_Strategy_3Q26_22072026.pdf", "page": 12}
+    ]
+  },
+  {
+    "id": "Q2",
+    "query": "Какие факторы ускорили инфляцию в июне 2026 года?",
+    "relevant_sources": [
+      {"document": "FI_Strategy_3Q26_22072026.pdf", "page": 12}
+    ]
+  },
+  {
+    "id": "Q3",
+    "query": "Какие категории факторов ЦБ учитывает при решениях по денежно-кредитной политике?",
+    "relevant_sources": [
+      {"document": "FI_Strategy_3Q26_22072026.pdf", "page": 8}
+    ]
+  },
+  {
+    "id": "Q4",
+    "query": "Как решение ЦБ 11 сентября 2026 года повлияло на рынок ОФЗ?",
+    "relevant_sources": [
+      {"document": "Бонд_Бриф_14092026.pdf", "page": 1}
+    ]
+  },
+  {
+    "id": "Q5",
+    "query": "Почему золото росло в августе 2026 года и что охладило ралли?",
+    "relevant_sources": [
+      {"document": "Gold_digest_August26.pdf", "page": 2},
+      {"document": "Gold_digest_August26.pdf", "page": 3},
+      {"document": "Gold_digest_August26.pdf", "page": 5}
+    ]
+  },
+  {
+    "id": "Q6",
+    "query": "Какую недельную инфляцию зафиксировал Росстат за 25–31 августа 2026 года?",
+    "relevant_sources": [
+      {"document": "Inflation_tracker_02.pdf", "page": 1}
+    ]
+  },
+  {
+    "id": "Q7",
+    "query": "Какие факторы поддержали потребительские расходы и розничную торговлю?",
+    "relevant_sources": [
+      {"document": "FI_Strategy_3Q26_22072026.pdf", "page": 11}
+    ]
+  },
+  {
+    "id": "Q8",
+    "query": "Какие российские производители стали сравниваются в таблице мультипликаторов?",
+    "relevant_sources": [
+      {"document": "ALFA_Russian_Steels_1К21PreviewUpdate_15Apr2021.pdf", "page": 3}
+    ]
+  }
+]
