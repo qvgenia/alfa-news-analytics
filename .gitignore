@@ -18,6 +18,11 @@ Thumbs.db
 data/*
 !data/.gitkeep
 
+# RAG source reports
+!data/reports/
+data/reports/*
+!data/reports/*.pdf
+
 # Test artifacts
 .pytest_cache/
 .coverage
