@@ -1,7 +1,11 @@
-
 from fastapi import FastAPI
 
-from app.insight_routes import router as insight_router
+from app.demo_data import build_demo_profile, build_demo_ranked_news
+from app.insight_routes import (
+    register_profile,
+    register_ranked_news,
+    router as insight_router,
+)
 
 
 app = FastAPI(
@@ -11,6 +15,10 @@ app = FastAPI(
 )
 
 app.include_router(insight_router)
+
+# Демо-данные: временно, пока не подключены сервисы A и B.
+register_profile(build_demo_profile())
+register_ranked_news(build_demo_ranked_news())
 
 
 @app.get("/health")
