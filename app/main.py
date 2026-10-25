@@ -28,3 +28,13 @@ register_ranked_news(build_demo_ranked_news())
 def health_check() -> dict[str, str]:
     """Проверяет, что сервер запущен."""
     return {"status": "ok"}
+
+
+from fastapi.responses import HTMLResponse
+from pathlib import Path
+
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    html_path = Path(__file__).parent / "templates" / "index.html"
+    return HTMLResponse(html_path.read_text(encoding="utf-8"))

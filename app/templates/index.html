@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Альфа — новостная аналитика</title>
+  <style>
+    :root {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #202124;
+      background: #f4f6f8;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header {
+      background: #ef3124;
+      color: white;
+      padding: 22px max(22px, calc((100% - 1080px) / 2));
+    }
+    header strong { font-size: 22px; }
+    header p { margin: 6px 0 0; opacity: .92; }
+    main { max-width: 1080px; margin: 28px auto; padding: 0 20px 48px; }
+    .panel, .card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 3px 14px #20212408;
+    }
+    h1 { font-size: 27px; margin: 0 0 8px; }
+    h2 { font-size: 19px; margin: 0 0 14px; }
+    h3 { font-size: 16px; margin: 0 0 10px; }
+    .muted { color: #687078; line-height: 1.5; }
+    label { display: block; font-size: 14px; font-weight: 600; margin: 16px 0 7px; }
+    input, textarea {
+      width: 100%; border: 1px solid #cbd0d6; border-radius: 9px;
+      padding: 12px; font: inherit; background: #fff;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    input:focus, textarea:focus { outline: 2px solid #ffb7b2; border-color: #ef3124; }
+    button {
+      border: 0; border-radius: 9px; background: #ef3124; color: white;
+      padding: 13px 19px; font: inherit; font-weight: 650; cursor: pointer;
+      margin-top: 16px;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    .status { margin-top: 14px; line-height: 1.5; }
+    .error { color: #b42318; }
+    .success { color: #176b42; }
+    .hidden { display: none; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .card { margin: 0; overflow-wrap: anywhere; }
+    .card p { line-height: 1.65; margin: 0; white-space: pre-wrap; }
+    ul { padding-left: 22px; margin: 0; }
+    li { margin: 8px 0; line-height: 1.55; }
+    .meta { color: #687078; font-size: 13px; margin-top: 12px; }
+    .source { border-top: 1px solid #edf0f2; padding: 13px 0; }
+    .source:first-child { border-top: 0; padding-top: 0; }
+    a { color: #b42318; overflow-wrap: anywhere; }
+    .pill { display: inline-block; padding: 5px 9px; border-radius: 20px; background: #fff0ef; color: #a32118; font-size: 13px; }
+    @media (max-width: 680px) {
+      main { margin-top: 18px; padding: 0 12px 30px; }
+      .grid { grid-template-columns: 1fr; }
+      .panel, .card { padding: 17px; }
+      h1 { font-size: 23px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <strong>Альфа · News Analytics</strong>
+  <p>Персонализированная новостная аналитика для бизнеса</p>
+</header>
+
+<main>
+  <section class="panel">
+    <h1>Аналитика для вашего бизнеса</h1>
+    <p class="muted">Задайте вопрос — система проанализирует доступные новости и объяснит их возможное значение для компании.</p>
+    <form id="ask-form">
+      <label for="client-id">ID клиента</label>
+      <input id="client-id" name="client_id" value="U_100194" required maxlength="200"
+             autocomplete="off" placeholder="Например, U_100194">
+
+      <label for="question">Ваш вопрос</label>
+      <textarea id="question" name="question" required maxlength="2000">Какие новости наиболее важны для моего бизнеса и почему?</textarea>
+
+      <button id="submit-button" type="submit">Сформировать аналитику</button>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <section id="result" class="hidden" aria-live="polite">
+    <div class="panel">
+      <span class="pill">Результат анализа</span>
+      <h2 style="margin-top:12px">Краткий вывод</h2>
+      <p id="answer" style="line-height:1.7; white-space:pre-wrap"></p>
+      <p id="result-meta" class="meta"></p>
+    </div>
+
+    <div id="insight-section" class="hidden">
+      <div class="grid">
+        <article class="card">
+          <h3>Что произошло</h3>
+          <p id="what-happened"></p>
+          <div id="facts-wrap" class="hidden" style="margin-top:14px">
+            <h3>Подтверждённые факты</h3>
+            <ul id="facts"></ul>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Почему это важно</h3>
+          <p id="why-it-matters"></p>
+        </article>
+        <article class="card">
+          <h3>Возможные последствия</h3>
+          <ul id="consequences"></ul>
+        </article>
+        <article class="card">
+          <h3>Рекомендуемые действия</h3>
+          <ul id="actions"></ul>
+        </article>
+        <article class="card">
+          <h3>Позиция банка</h3>
+          <p id="bank-view"></p>
+          <p id="bank-view-note" class="meta"></p>
+        </article>
+        <article class="card">
+          <h3>Вывод AI</h3>
+          <p id="ai-inference"></p>
+        </article>
+      </div>
+      <div class="panel" style="margin-top:18px">
+        <h2>На чём основан вывод</h2>
+        <ul id="reasoning"></ul>
+      </div>
+    </div>
+
+    <div id="limitations-section" class="panel hidden">
+      <h2>Ограничения анализа</h2>
+      <ul id="limitations"></ul>
+    </div>
+
+    <div class="panel">
+      <h2>Источники</h2>
+      <div id="sources"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const form = document.getElementById("ask-form");
+  const button = document.getElementById("submit-button");
+  const statusBox = document.getElementById("status");
+  const result = document.getElementById("result");
+
+  function setText(id, value, fallback = "Нет данных в ответе API.") {
+    document.getElementById(id).textContent =
+      value === null || value === undefined || value === "" ? fallback : String(value);
+  }
+
+  function renderList(id, items) {
+    const list = document.getElementById(id);
+    list.replaceChildren();
+    (Array.isArray(items) ? items : []).forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = typeof item === "string"
+        ? item
+        : (item?.text ?? JSON.stringify(item));
+      list.appendChild(li);
+    });
+    return list.children.length > 0;
+  }
+
+  function renderSources(sources) {
+    const container = document.getElementById("sources");
+    container.replaceChildren();
+
+    if (!Array.isArray(sources) || sources.length === 0) {
+      const p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = "API не вернул ссылки на источники.";
+      container.appendChild(p);
+      return;
+    }
+
+    sources.forEach(source => {
+      const item = document.createElement("div");
+      item.className = "source";
+
+      const title = document.createElement("strong");
+      title.textContent = source.title || source.source_id || "Источник";
+      item.appendChild(title);
+
+      const type = document.createElement("div");
+      type.className = "meta";
+      type.textContent = source.source_type || "other";
+      item.appendChild(type);
+
+      if (source.url) {
+        const link = document.createElement("a");
+        link.href = source.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = source.url;
+        item.appendChild(document.createElement("br"));
+        item.appendChild(link);
+      }
+
+      if (source.page) {
+        const page = document.createElement("div");
+        page.className = "meta";
+        page.textContent = `Страница: ${source.page}`;
+        item.appendChild(page);
+      }
+
+      if (source.excerpt) {
+        const excerpt = document.createElement("p");
+        excerpt.className = "muted";
+        excerpt.style.marginTop = "8px";
+        excerpt.textContent = source.excerpt;
+        item.appendChild(excerpt);
+      }
+      container.appendChild(item);
+    });
+  }
+
+  function renderResponse(data) {
+    setText("answer", data.answer);
+    setText("result-meta",
+      `Клиент: ${data.client_id || "—"} · Новость: ${data.news_id || "не указана"} · ID запроса: ${data.trace_id || "—"}`,
+      `Клиент: ${data.client_id || "—"}`
+    );
+
+    const insight = data.insight;
+    const insightSection = document.getElementById("insight-section");
+    insightSection.classList.toggle("hidden", !insight);
+
+    if (insight) {
+      setText("what-happened", insight.what_happened);
+      setText("why-it-matters", insight.why_it_matters);
+      renderList("facts", insight.facts);
+      document.getElementById("facts-wrap").classList.toggle(
+        "hidden", !Array.isArray(insight.facts) || insight.facts.length === 0
+      );
+      renderList("consequences", insight.potential_consequences);
+      renderList("actions", insight.suggested_actions);
+      setText("bank-view", insight.bank_view,
+        "Позиция банка не предоставлена.");
+      setText("bank-view-note", insight.bank_view_available
+        ? "Позиция банка доступна."
+        : "Наличие позиции банка не подтверждено.");
+      setText("ai-inference", insight.ai_inference,
+        "Отдельный вывод AI не предоставлен.");
+      renderList("reasoning", insight.reasoning_basis);
+
+      const allLimitations = [
+        ...(Array.isArray(insight.limitations) ? insight.limitations : []),
+        ...(Array.isArray(data.limitations) ? data.limitations : [])
+      ];
+      const uniqueLimitations = [...new Set(allLimitations)];
+      renderList("limitations", uniqueLimitations);
+      document.getElementById("limitations-section").classList.toggle(
+        "hidden", uniqueLimitations.length === 0
+      );
+      renderSources(insight.source_refs?.length ? insight.source_refs : data.source_refs);
+    } else {
+      renderList("limitations", data.limitations);
+      document.getElementById("limitations-section").classList.toggle(
+        "hidden", !data.limitations?.length
+      );
+      renderSources(data.source_refs);
+    }
+    result.classList.remove("hidden");
+    result.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    result.classList.add("hidden");
+    statusBox.className = "status";
+    statusBox.textContent = "Запрос отправлен. Ожидаем ответ аналитической системы…";
+    button.disabled = true;
+    button.textContent = "Анализируем…";
+
+    try {
+      const response = await fetch("/insights/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: document.getElementById("client-id").value.trim(),
+          question: document.getElementById("question").value.trim()
+        })
+      });
+
+      const raw = await response.text();
+      let data;
+      try { data = JSON.parse(raw); }
+      catch { throw new Error(`Сервер вернул неожиданный ответ (HTTP ${response.status}).`); }
+
+      if (!response.ok) {
+        const detail = typeof data.detail === "string"
+          ? data.detail
+          : JSON.stringify(data.detail || data);
+        throw new Error(`Ошибка API (${response.status}): ${detail}`);
+      }
+
+      renderResponse(data);
+      statusBox.className = "status success";
+      statusBox.textContent = "Анализ получен.";
+    } catch (error) {
+      statusBox.className = "status error";
+      statusBox.textContent = `Не удалось получить аналитику: ${error.message}`;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Сформировать аналитику";
+    }
+  });
+</script>
+</body>
+</html>
