@@ -15,6 +15,7 @@ from app.news.news_feed import get_ranked_news_feed
 from app.rag.router import router as reports_router
 from app.rag.router import set_search_service
 from app.rag.service import ReportSearchService
+from app.demo.profile_store import get_demo_profile, load_demo_profiles
 
 
 @asynccontextmanager
@@ -58,6 +59,34 @@ def get_news_feed(
         raise HTTPException(
             status_code=404,
             detail=f"Профиль клиента '{client_id}' не найден",
+        )
+
+    return get_ranked_news_feed(
+        client=client,
+        limit_per_source=limit_per_source,
+    )
+
+@app.get("/demo/profiles")
+def get_demo_profiles() -> list[dict[str, str]]:
+    """Возвращает список доступных демо-профилей."""
+    return [
+        {"client_id": client_id}
+        for client_id in load_demo_profiles()
+    ]
+
+
+@app.get("/demo/feed", response_model=list[RankedNewsItem])
+def get_demo_news_feed(
+    client_id: str,
+    limit_per_source: int = 50,
+) -> list[RankedNewsItem]:
+    """Новостная лента на синтетическом профиле без PostgreSQL."""
+    client = get_demo_profile(client_id)
+
+    if client is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Демо-профиль '{client_id}' не найден",
         )
 
     return get_ranked_news_feed(
