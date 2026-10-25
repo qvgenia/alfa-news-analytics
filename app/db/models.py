@@ -1,4 +1,8 @@
 
+import hashlib
+
+from pgvector.sqlalchemy import Vector
+
 from datetime import datetime
 from decimal import Decimal
 
@@ -105,4 +109,41 @@ class CounterpartyModel(Base):
             "ix_client_counterparties_counterparty",
             "counterparty_client_id",
         ),
+    )
+
+
+class ReportChunkModel(Base):
+    """Сохранённые чанки PDF и их семантические эмбеддинги."""
+
+    __tablename__ = "report_chunks"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    document: Mapped[str] = mapped_column(String(500), nullable=False)
+    page: Mapped[int] = mapped_column(nullable=False)
+    chunk_index: Mapped[int] = mapped_column(nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # SHA-256 текста позволяет определить, изменился ли чанк.
+    content_hash: Mapped[str] = mapped_column(
+        String(64), nullable=False
+    )
+
+    model_name: Mapped[str] = mapped_column(
+        String(255), nullable=False
+    )
+
+    embedding: Mapped[list[float]] = mapped_column(
+        Vector(384), nullable=False
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_report_chunks_identity",
+            "document",
+            "page",
+            "chunk_index",
+            unique=True,
+        ),
+        Index("ix_report_chunks_content_hash", "content_hash"),
     )
