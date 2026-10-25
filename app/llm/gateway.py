@@ -37,8 +37,8 @@ class LLMGateway:
         self.model = os.getenv("LLM_MODEL", "").strip()
 
         try:
-            self.timeout = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
-            self.max_tokens = int(os.getenv("LLM_MAX_TOKENS", "2000"))
+            self.timeout = float(os.getenv("LLM_TIMEOUT_SECONDS", "90"))
+            self.max_tokens = int(os.getenv("LLM_MAX_TOKENS", "8000"))
         except ValueError as exc:
             raise ValueError(
                 "LLM_TIMEOUT_SECONDS и LLM_MAX_TOKENS должны быть числами."
