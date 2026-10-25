@@ -1,18 +1,42 @@
+
+from contextlib import asynccontextmanager
+from pathlib import Path
+from collections.abc import AsyncIterator
+
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
+from app.agent.routes import router as assistant_router
+from app.clients.router import router as clients_router
 from app.clients.service import get_client_profile
 from app.contracts import RankedNewsItem
 from app.db.session import get_db
 from app.news.news_feed import get_ranked_news_feed
-from app.clients.router import router as clients_router
+from app.rag.router import router as reports_router
+from app.rag.router import set_search_service
+from app.rag.service import ReportSearchService
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    reports_dir = Path("data/reports")
+
+    if reports_dir.exists() and any(reports_dir.glob("*.pdf")):
+        set_search_service(ReportSearchService(reports_dir))
+
+    yield
+
 
 app = FastAPI(
     title="Alfa News Analytics",
     description="Персонализированная новостная аналитика для бизнеса",
     version="0.1.0",
+    lifespan=lifespan,
 )
+
 app.include_router(clients_router)
+app.include_router(reports_router)
+app.include_router(assistant_router)
 
 
 @app.get("/health")

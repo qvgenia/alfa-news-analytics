@@ -11,6 +11,7 @@ from html import unescape
 from urllib.parse import urlsplit, urlunsplit
 
 import feedparser
+import httpx
 
 from app.contracts import NewsItem
 
@@ -84,6 +85,18 @@ def _stable_news_id(url: str, title: str) -> str:
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
 
 
+def _fetch_feed(feed_url: str):
+    """Загружает RSS с тайм-аутом и проверкой HTTP-статуса."""
+    response = httpx.get(
+        feed_url,
+        timeout=10.0,
+        follow_redirects=True,
+        headers={"User-Agent": "AlfaNewsAnalytics/0.1"},
+    )
+    response.raise_for_status()
+    return feedparser.parse(response.content)
+
+
 def fetch_rss_news(
     sources: dict[str, str] | None = None,
     limit_per_source: int = 50,
@@ -98,7 +111,7 @@ def fetch_rss_news(
 
     for publisher, feed_url in sources.items():
         try:
-            feed = feedparser.parse(feed_url)
+            feed = _fetch_feed(feed_url)
         except Exception:
             # Ошибка одного источника не должна останавливать остальные.
             continue

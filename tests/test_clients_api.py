@@ -10,6 +10,10 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 
+from pydantic import ValidationError
+from app.contracts import ClientProfile
+import pytest
+
 
 engine = create_engine(
     "sqlite://",
@@ -142,3 +146,60 @@ def test_update_client_id_mismatch_returns_422():
     )
 
     assert response.status_code == 422
+
+def test_update_client_profile_replaces_counterparties():
+    client.post("/clients", json=profile_payload())
+
+    updated = profile_payload()
+    updated["top_counterparties"] = [
+        {
+            "client_id": "COUNTERPARTY_002",
+            "direction": "incoming",
+            "pay_amt": "500000",
+            "pay_cnt": 3,
+            "industry_code": "46.90",
+            "industry_name": "Торговля",
+            "region": "Санкт-Петербург",
+        }
+    ]
+
+    response = client.put("/clients/TEST_API_CLIENT", json=updated)
+
+    assert response.status_code == 200
+    counterparties = response.json()["top_counterparties"]
+    assert len(counterparties) == 1
+    assert counterparties[0]["client_id"] == "COUNTERPARTY_002"
+
+
+def test_update_client_profile_clears_optional_lists():
+    client.post("/clients", json=profile_payload())
+
+    updated = profile_payload()
+    updated["products"] = []
+    updated["fts_countries"] = []
+    updated["related_entities"] = []
+    updated["top_counterparties"] = []
+
+    response = client.put("/clients/TEST_API_CLIENT", json=updated)
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["products"] == []
+    assert result["fts_countries"] == []
+    assert result["related_entities"] == []
+    assert result["top_counterparties"] == []
+
+def test_client_profile_allows_zero_or_one_group():
+    assert ClientProfile(client_id="client-1", group_ids=[]).group_ids == []
+    assert ClientProfile(
+        client_id="client-2",
+        group_ids=["GROUP_001"],
+    ).group_ids == ["GROUP_001"]
+
+
+def test_client_profile_rejects_multiple_groups():
+    with pytest.raises(ValidationError):
+        ClientProfile(
+            client_id="client-3",
+            group_ids=["GROUP_001", "GROUP_002"],
+        )
