@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from app.contracts import NewsFact, NewsItem
-from app.llm.gateway import LLMGateway, get_llm_gateway
+from app.llm.gateway import LLMGateway
 
 
 def build_news_facts(
@@ -53,7 +53,7 @@ def extract_news_facts(
     gateway: LLMGateway | None = None,
 ) -> list[NewsFact]:
     """Извлекает факты через LLM; при ошибке возвращает пустой список."""
-    gateway = gateway or get_llm_gateway()
+    gateway = gateway or LLMGateway()
 
     system_prompt = """
 Ты извлекаешь проверяемые факты из новостных публикаций.

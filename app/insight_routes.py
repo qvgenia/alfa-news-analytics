@@ -4,7 +4,8 @@ import logging
 import os
 import time
 from pathlib import Path
-
+from app.clients.service import get_client_profile
+from app.db.session import SessionLocal
 from fastapi import APIRouter, HTTPException
 
 from app.contracts import (
@@ -167,10 +168,19 @@ async def generate_insight(request: AskRequest) -> AskResponse:
     notes: list[str] = []
 
     profile = _profiles.get(request.client_id)
+
     if profile is not None:
         notes.append("Профиль клиента демонстрационный.")
     else:
         profile = _profile_from_file(request.client_id)
+
+    if profile is None:
+        db = SessionLocal()
+        try:
+            profile = get_client_profile(request.client_id, db)
+        finally:
+            db.close()
+
     if profile is None:
         raise HTTPException(
             status_code=404,

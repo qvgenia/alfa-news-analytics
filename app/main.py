@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 
 from app.demo_data import build_demo_profile, build_demo_ranked_news
+from dotenv import load_dotenv
+
+load_dotenv()
 from app.insight_routes import (
     register_profile,
     register_ranked_news,
