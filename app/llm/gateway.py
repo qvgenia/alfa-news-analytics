@@ -256,13 +256,21 @@ class MockLLMGateway:
 
 
 def get_llm_gateway() -> LLMGateway | MockLLMGateway:
-    """Создаёт шлюз по настройкам окружения."""
     provider = settings.llm_provider.strip().lower()
 
-    if not provider and not settings.llm_api_key:
+    # Если провайдер не задан, выбираем подходящий режим автоматически.
+    if not provider:
+        if settings.llm_base_url.strip() and settings.llm_model.strip():
+            provider = "openai-compatible"
+        else:
+            return MockLLMGateway()
+
+    if provider in {"mock", "test"}:
         return MockLLMGateway()
 
-    if provider not in {"openai", "openai-compatible", "openai_compatible"}:
-        raise GatewayError(f"Неподдерживаемый LLM_PROVIDER: {provider!r}.")
+    if provider in {"openai", "openai-compatible", "openai_compatible"}:
+        return LLMGateway()
 
-    return LLMGateway()
+    raise GatewayError(
+        f"Неподдерживаемый LLM_PROVIDER: {provider!r}."
+    )
