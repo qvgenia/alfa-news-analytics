@@ -1,0 +1,72 @@
+
+[
+  {
+    "client_id": "demo-client-001",
+    "industry_code": "10.11",
+    "industry_name": "Переработка мяса и производство пищевой продукции",
+    "region": "Московская область",
+    "city": "Подольск",
+    "revenue_rub": "120000000",
+    "products": ["RKO", "LOA", "ZPP"],
+    "group_ids": [],
+    "fts_countries": ["Китай", "Казахстан"],
+    "top_counterparties": [
+      {
+        "client_id": "demo-counterparty-001",
+        "direction": "incoming",
+        "pay_amt": "15000000",
+        "pay_cnt": 24,
+        "industry_code": "46.32",
+        "industry_name": "Оптовая торговля мясом",
+        "region": "Москва"
+      }
+    ],
+    "related_entities": ["пищевое производство", "мясная продукция", "экспорт"]
+  },
+  {
+    "client_id": "demo-client-002",
+    "industry_code": "62.01",
+    "industry_name": "Разработка компьютерного программного обеспечения",
+    "region": "Санкт-Петербург",
+    "city": "Санкт-Петербург",
+    "revenue_rub": "85000000",
+    "products": ["RKO", "DEP"],
+    "group_ids": [],
+    "fts_countries": ["Армения", "Казахстан"],
+    "top_counterparties": [
+      {
+        "client_id": "demo-counterparty-002",
+        "direction": "outgoing",
+        "pay_amt": "4200000",
+        "pay_cnt": 12,
+        "industry_code": "63.11",
+        "industry_name": "Обработка данных",
+        "region": "Москва"
+      }
+    ],
+    "related_entities": ["IT", "разработка ПО", "облачные сервисы"]
+  },
+  {
+    "client_id": "demo-client-003",
+    "industry_code": "46.90",
+    "industry_name": "Неспециализированная оптовая торговля",
+    "region": "Республика Татарстан",
+    "city": "Казань",
+    "revenue_rub": "210000000",
+    "products": ["RKO", "GAR", "FACTORING"],
+    "group_ids": [],
+    "fts_countries": ["Китай", "Турция"],
+    "top_counterparties": [
+      {
+        "client_id": "demo-counterparty-003",
+        "direction": "incoming",
+        "pay_amt": "18000000",
+        "pay_cnt": 36,
+        "industry_code": "52.29",
+        "industry_name": "Вспомогательная деятельность в сфере перевозок",
+        "region": "Республика Татарстан"
+      }
+    ],
+    "related_entities": ["оптовая торговля", "логистика", "импорт"]
+  }
+]
