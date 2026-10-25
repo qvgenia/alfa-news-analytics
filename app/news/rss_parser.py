@@ -21,6 +21,7 @@ from app.contracts import NewsItem
 RSS_SOURCES: dict[str, str] = {
     "РБК": "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
     "Коммерсантъ": "https://www.kommersant.ru/RSS/news.xml",
+    "Ведомости — Промышленность": "https://www.vedomosti.ru/rss/rubric/business/industry",
 }
 
 

@@ -1,4 +1,3 @@
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,7 +9,7 @@ def get_client_profile(
     client_id: str,
     db: Session,
 ) -> ClientProfile | None:
-    """Возвращает профиль клиента вместе с контрагентами."""
+    """Возвращает профиль клиента вместе с топ-10 контрагентами."""
     statement = select(ClientProfileModel).where(
         ClientProfileModel.client_id == client_id
     )

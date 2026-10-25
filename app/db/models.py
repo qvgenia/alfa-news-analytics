@@ -1,11 +1,7 @@
-
-import hashlib
-
-from pgvector.sqlalchemy import Vector
-
 from datetime import datetime
 from decimal import Decimal
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     DateTime,
     ForeignKey,
@@ -39,7 +35,6 @@ class ClientProfileModel(Base):
 
     group_id: Mapped[str | None] = mapped_column(String(100))
 
-    # Списки кодов продуктов, стран и связанных компаний.
     products: Mapped[list[str]] = mapped_column(
         JSONB, nullable=False, default=list
     )
@@ -83,13 +78,13 @@ class CounterpartyModel(Base):
     counterparty_client_id: Mapped[str] = mapped_column(
         String(100), nullable=False
     )
-    source: Mapped[str] = mapped_column(
-    String(50),
-    nullable=False,
-    default="manual",
-    server_default="manual",
-    )
 
+    source: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="manual",
+        server_default="manual",
+    )
 
     industry_code: Mapped[str | None] = mapped_column(String(50))
     industry_name: Mapped[str | None] = mapped_column(Text)
@@ -124,15 +119,12 @@ class ReportChunkModel(Base):
     chunk_index: Mapped[int] = mapped_column(nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    # SHA-256 текста позволяет определить, изменился ли чанк.
     content_hash: Mapped[str] = mapped_column(
         String(64), nullable=False
     )
-
     model_name: Mapped[str] = mapped_column(
         String(255), nullable=False
     )
-
     embedding: Mapped[list[float]] = mapped_column(
         Vector(384), nullable=False
     )

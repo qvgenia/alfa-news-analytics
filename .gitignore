@@ -27,3 +27,6 @@ data/reports/*
 .pytest_cache/
 .coverage
 htmlcov/
+.env
+*.backup.txt
+qlalchemy-service-backup.txt
